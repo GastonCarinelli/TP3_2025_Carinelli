@@ -15,7 +15,7 @@ int tiempo = 100;
 
 typedef enum {
     ESPERO_TECLA,
-    BASES_TIEMPO,
+    PROCESO_TECLA,
     ESPERANDO_SUELTE_TECLA
 } EstadoMain;
 
@@ -36,43 +36,28 @@ int main(void) {
             case ESPERO_TECLA: {
                 char tecla = Leer_Teclado();
                 if (tecla != 0) {
-                    estado2 = BASES_TIEMPO;
-                }
-                break;
-            }
-
-            case BASES_TIEMPO: {
-                char tecla = Leer_Teclado();
-                switch (tecla) {
-                    case 'A':
-                        tiempo = 50;
-                        break;
-                    case 'B':
-                        tiempo = 90;
-                        break;
-                    case 'C':
-                        tiempo = 110;
-                        break;
-                    case 'D':
-                        tiempo = 220;
-                        break;
-                    case '*':
-                        tiempo = 100;
-                        break;
-                    case '#':
-                        tiempo = 100;
-                        break;
-                }
-
-                if (tecla != 0) {
-                    led_blink(tecla, tiempo);
                     tecla_anterior = tecla;
-                    estado2 = ESPERANDO_SUELTE_TECLA;
-                } else {
-                    estado2 = ESPERO_TECLA;
+                    estado2 = PROCESO_TECLA;
                 }
                 break;
             }
+
+            case PROCESO_TECLA: {
+                if (tecla_anterior >= 'A' && tecla_anterior <= 'D') {
+                    switch (tecla_anterior) {
+                        case 'A': tiempo = 50; break;
+                        case 'B': tiempo = 90; break;
+                        case 'C': tiempo = 110; break;
+                        case 'D': tiempo = 220; break;
+                    }
+                } else if (tecla_anterior >= '0' && tecla_anterior <= '9') {
+                    int cantidad = (tecla_anterior - '0') + 1;
+                    led_blink(cantidad, tiempo);
+                }
+                estado2 = ESPERANDO_SUELTE_TECLA;
+                break;
+            }
+
             case ESPERANDO_SUELTE_TECLA: {
                 if (Leer_Teclado() == 0) {
                     estado2 = ESPERO_TECLA;
@@ -88,6 +73,7 @@ void delay_ms(int tiempo) {
     for (i = 0; i < tiempo * 12700; i++) {}
 }
 
+// PD10
 void inicializo_LED(void) {
     GPIO_InitTypeDef GPIO_InitStruct;
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_10;
@@ -98,13 +84,11 @@ void inicializo_LED(void) {
     GPIO_Init(GPIOD, &GPIO_InitStruct);
 }
 
-void led_blink(char n, int tiempo) {
-    if (n < 65) {
-        for (char i = '0'; i < (n + 1); i++) {
-            GPIO_SetBits(GPIOA, GPIO_Pin_5);
-            delay_ms(tiempo);
-            GPIO_ResetBits(GPIOA, GPIO_Pin_5);
-            delay_ms(tiempo);
-        }
+void led_blink(char cantidad, int tiempo) {
+    for (char i = 0; i < cantidad; i++) {
+        GPIO_SetBits(GPIOD, GPIO_Pin_10);
+        delay_ms(tiempo);
+        GPIO_ResetBits(GPIOD, GPIO_Pin_10);
+        delay_ms(tiempo);
     }
 }

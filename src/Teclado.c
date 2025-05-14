@@ -25,7 +25,7 @@ static char tecla_actual = 0;
 void inicializo_Teclado(void) {
     GPIO_InitTypeDef GPIO_InitStruct;
 
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOE, ENABLE);
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOE| RCC_AHB1Periph_GPIOD, ENABLE);
 
     int f,c;
 
@@ -97,3 +97,4 @@ char Leer_Teclado(void) {
     }
     return tecla_actual;
 }
+
