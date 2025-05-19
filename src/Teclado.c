@@ -83,7 +83,7 @@ char Leer_Teclado(void) {
 
 	        case DEBOUNCE:
 	            delay_ms(20);
-	            GPIO_SetBits(filas[fila_actual].puerto, filas[fila_actual].pin);
+	            GPIO_SetBits(filas[fila_actual].puerto, filas[fila_actual].pin);  // mantener fila activa
 	            estado = VALIDAR_TECLA;
 	            break;
 
@@ -101,26 +101,14 @@ char Leer_Teclado(void) {
 	            estado = ESPERANDO_LIBERACION_TECLA;
 	            return tecla_actual;
 
-	        case ESPERANDO_LIBERACION_TECLA: {
-	            int tecla_presionada = 0;
+	        case ESPERANDO_LIBERACION_TECLA:
+	            GPIO_SetBits(filas[fila_actual].puerto, filas[fila_actual].pin);  // mantener fila activa
 
-	            for (int f = 0; f < 4; f++) {
-	                GPIO_SetBits(filas[f].puerto, filas[f].pin);
-	                for (int c = 0; c < 4; c++) {
-	                    if (GPIO_ReadInputDataBit(columnas[c].puerto, columnas[c].pin) == 1) {
-	                        tecla_presionada = 1;
-	                        break;
-	                    }
-	                }
-	                GPIO_ResetBits(filas[f].puerto, filas[f].pin);
-	            }
-
-	            if (!tecla_presionada) {
+	            if (GPIO_ReadInputDataBit(columnas[columna_actual].puerto, columnas[columna_actual].pin) == 0) {
+	                GPIO_ResetBits(filas[fila_actual].puerto, filas[fila_actual].pin);  // apagar fila al liberar
 	                estado = ESPERANDO_TECLA;
 	            }
-
 	            return 0;
-	        }
 	    }
 
 	    return 0;
