@@ -49,7 +49,7 @@ void inicializo_Teclado(void) {
         GPIO_Init(filas[f].puerto, &GPIO_InitStruct);
     }
 
-    // Columnas como entradas con PULL-DOWN
+    // Columnas como entradas
     for (int c = 0; c < 4; c++) {
         GPIO_InitStruct.GPIO_Pin = columnas[c].pin;
         GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN;
@@ -104,7 +104,6 @@ char Leer_Teclado(void) {
 	        case ESPERANDO_LIBERACION_TECLA: {
 	            int tecla_presionada = 0;
 
-	            // Escaneo completo: filas y columnas
 	            for (int f = 0; f < 4; f++) {
 	                GPIO_SetBits(filas[f].puerto, filas[f].pin);
 	                for (int c = 0; c < 4; c++) {

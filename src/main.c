@@ -69,7 +69,6 @@ int main(void) {
     }
 }
 
-// Delay por software (ajustable si querés mejor precisión)
 void delay_ms(int ms) {
     for (int i = 0; i < ms * 12700; i++) {}
 }
@@ -78,7 +77,6 @@ void delay_ms(int ms) {
 void inicializo_LED(void) {
     GPIO_InitTypeDef GPIO_InitStruct;
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_10;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_OUT;
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
@@ -87,7 +85,6 @@ void inicializo_LED(void) {
     GPIO_Init(GPIOD, &GPIO_InitStruct);
 }
 
-// Hace titilar el LED en PD10 la cantidad de veces con el tiempo dado
 void led_blink(char cantidad, int tiempo) {
     for (char i = 0; i < cantidad; i++) {
         GPIO_SetBits(GPIOD, GPIO_Pin_10);
