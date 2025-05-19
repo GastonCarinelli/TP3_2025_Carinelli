@@ -16,14 +16,14 @@ int tiempo = 100;
 typedef enum {
     ESPERO_TECLA,
     PROCESO_TECLA,
-    ESPERANDO_SUELTE_TECLA
+    ESPERANDO_LIBERACION_MAIN
 } EstadoMain;
 
 EstadoMain estado2;
 
 void inicializo_LED(void);
-void led_blink(char, int);
-void delay_ms(int);
+void led_blink(char cantidad, int tiempo);
+void delay_ms(int ms);
 
 int main(void) {
     inicializo_Teclado();
@@ -33,6 +33,7 @@ int main(void) {
 
     while (1) {
         switch (estado2) {
+
             case ESPERO_TECLA: {
                 char tecla = Leer_Teclado();
                 if (tecla != 0) {
@@ -43,22 +44,22 @@ int main(void) {
             }
 
             case PROCESO_TECLA: {
+                const int tiempos[] = {50, 90, 110, 220};
+
                 if (tecla_anterior >= 'A' && tecla_anterior <= 'D') {
-                    switch (tecla_anterior) {
-                        case 'A': tiempo = 50; break;
-                        case 'B': tiempo = 90; break;
-                        case 'C': tiempo = 110; break;
-                        case 'D': tiempo = 220; break;
-                    }
-                } else if (tecla_anterior >= '0' && tecla_anterior <= '9') {
+                    tiempo = tiempos[tecla_anterior - 'A'];
+                }
+                else if (tecla_anterior >= '0' && tecla_anterior <= '9') {
                     int cantidad = (tecla_anterior - '0') + 1;
                     led_blink(cantidad, tiempo);
                 }
-                estado2 = ESPERANDO_SUELTE_TECLA;
+
+                estado2 = ESPERANDO_LIBERACION_MAIN;
                 break;
             }
 
-            case ESPERANDO_SUELTE_TECLA: {
+            case ESPERANDO_LIBERACION_MAIN: {
+
                 if (Leer_Teclado() == 0) {
                     estado2 = ESPERO_TECLA;
                 }
@@ -68,14 +69,16 @@ int main(void) {
     }
 }
 
-void delay_ms(int tiempo) {
-    int i;
-    for (i = 0; i < tiempo * 12700; i++) {}
+// Delay por software (ajustable si querés mejor precisión)
+void delay_ms(int ms) {
+    for (int i = 0; i < ms * 12700; i++) {}
 }
 
-// PD10
+// Inicializa LED en PD10
 void inicializo_LED(void) {
     GPIO_InitTypeDef GPIO_InitStruct;
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_10;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_OUT;
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
@@ -84,6 +87,7 @@ void inicializo_LED(void) {
     GPIO_Init(GPIOD, &GPIO_InitStruct);
 }
 
+// Hace titilar el LED en PD10 la cantidad de veces con el tiempo dado
 void led_blink(char cantidad, int tiempo) {
     for (char i = 0; i < cantidad; i++) {
         GPIO_SetBits(GPIOD, GPIO_Pin_10);

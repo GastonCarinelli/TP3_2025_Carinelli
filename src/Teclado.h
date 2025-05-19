@@ -13,9 +13,10 @@
 typedef enum {
     ESPERANDO_TECLA,
     DEBOUNCE,
+    VALIDAR_TECLA,
+    TECLA_VALIDA,
     ESPERANDO_LIBERACION_TECLA
 } EstadoTeclado;
-
 
 void inicializo_Teclado(void);
 char Leer_Teclado(void);

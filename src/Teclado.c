@@ -14,21 +14,20 @@ typedef struct {
     uint16_t pin;
 } PinTeclado;
 
-// Filas F1=PE8 F2=PE9 F3=PE10 F4=PE11
 PinTeclado filas[4] = {
-    { GPIOE, GPIO_Pin_8 },
-    { GPIOE, GPIO_Pin_9 },
+    { GPIOE, GPIO_Pin_11 },
     { GPIOE, GPIO_Pin_10 },
-    { GPIOE, GPIO_Pin_11 }
+    { GPIOE, GPIO_Pin_9  },
+    { GPIOE, GPIO_Pin_8  }
 };
 
-// Columnas C1=PC0 C2=PC3 C3=PC2 C4=PA0
 PinTeclado columnas[4] = {
-    { GPIOC, GPIO_Pin_0 },
-    { GPIOC, GPIO_Pin_3 },
+    { GPIOA, GPIO_Pin_0 },
     { GPIOC, GPIO_Pin_2 },
-    { GPIOA, GPIO_Pin_0 }
+    { GPIOC, GPIO_Pin_3 },
+    { GPIOC, GPIO_Pin_0 }
 };
+
 
 EstadoTeclado estado = ESPERANDO_TECLA;
 static int fila_actual = 0;
@@ -38,7 +37,7 @@ static char tecla_actual = 0;
 void inicializo_Teclado(void) {
     GPIO_InitTypeDef GPIO_InitStruct;
 
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA |RCC_AHB1Periph_GPIOC |RCC_AHB1Periph_GPIOE |RCC_AHB1Periph_GPIOD, ENABLE);
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOE, ENABLE);
 
     // Filas como salidas
     for (int f = 0; f < 4; f++) {
@@ -50,7 +49,7 @@ void inicializo_Teclado(void) {
         GPIO_Init(filas[f].puerto, &GPIO_InitStruct);
     }
 
-    // Columnas como entradas
+    // Columnas como entradas con PULL-DOWN
     for (int c = 0; c < 4; c++) {
         GPIO_InitStruct.GPIO_Pin = columnas[c].pin;
         GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN;
@@ -61,49 +60,69 @@ void inicializo_Teclado(void) {
 }
 
 char Leer_Teclado(void) {
-    char teclado[4][4] = {
-        {'1', '2', '3', 'A'},
-        {'4', '5', '6', 'B'},
-        {'7', '8', '9', 'C'},
-        {'*', '0', '#', 'D'}
-    };
+	static char teclado[4][4] = {
+	    {'D', 'C', 'B', 'A'},
+	    {'#', '9', '6', '3'},
+	    {'0', '8', '5', '2'},
+	    {'*', '7', '4', '1'}
+	};
 
-    switch (estado) {
-        case ESPERANDO_TECLA:
-            for (fila_actual = 0; fila_actual < 4; fila_actual++) {
-                GPIO_SetBits(filas[fila_actual].puerto, filas[fila_actual].pin);
-                for (columna_actual = 0; columna_actual < 4; columna_actual++) {
-                    if (GPIO_ReadInputDataBit(columnas[columna_actual].puerto, columnas[columna_actual].pin) == 1) {
-                        estado = DEBOUNCE;
-                        break;
-                    }
-                }
-                GPIO_ResetBits(filas[fila_actual].puerto, filas[fila_actual].pin);
-                if (estado == DEBOUNCE) {
-                    break;
-                }
-            }
-            break;
+	switch (estado) {
+	        case ESPERANDO_TECLA:
+	            for (fila_actual = 0; fila_actual < 4; fila_actual++) {
+	                GPIO_SetBits(filas[fila_actual].puerto, filas[fila_actual].pin);
+	                for (columna_actual = 0; columna_actual < 4; columna_actual++) {
+	                    if (GPIO_ReadInputDataBit(columnas[columna_actual].puerto, columnas[columna_actual].pin) == 1) {
+	                        estado = DEBOUNCE;
+	                        return 0;
+	                    }
+	                }
+	                GPIO_ResetBits(filas[fila_actual].puerto, filas[fila_actual].pin);
+	            }
+	            break;
 
-        case DEBOUNCE:
-            delay_ms(20);
-            GPIO_SetBits(filas[fila_actual].puerto, filas[fila_actual].pin);
-            estado = ESPERANDO_LIBERACION_TECLA;
-            break;
+	        case DEBOUNCE:
+	            delay_ms(20);
+	            GPIO_SetBits(filas[fila_actual].puerto, filas[fila_actual].pin);
+	            estado = VALIDAR_TECLA;
+	            break;
 
-        case ESPERANDO_LIBERACION_TECLA:
-            if (GPIO_ReadInputDataBit(columnas[columna_actual].puerto, columnas[columna_actual].pin) == 0) {
-                tecla_actual = 0;
-                GPIO_ResetBits(filas[fila_actual].puerto, filas[fila_actual].pin);
-                estado = ESPERANDO_TECLA;
-            } else {
-                tecla_actual = teclado[fila_actual][columna_actual];
-                estado = ESPERANDO_LIBERACION_TECLA;
-            }
-            break;
-    }
+	        case VALIDAR_TECLA:
+	            if (GPIO_ReadInputDataBit(columnas[columna_actual].puerto, columnas[columna_actual].pin) == 1) {
+	                tecla_actual = teclado[fila_actual][columna_actual];
+	                estado = TECLA_VALIDA;
+	            } else {
+	                estado = ESPERANDO_TECLA;
+	            }
+	            GPIO_ResetBits(filas[fila_actual].puerto, filas[fila_actual].pin);
+	            break;
 
-    return tecla_actual;
-}
+	        case TECLA_VALIDA:
+	            estado = ESPERANDO_LIBERACION_TECLA;
+	            return tecla_actual;
 
+	        case ESPERANDO_LIBERACION_TECLA: {
+	            int tecla_presionada = 0;
 
+	            // Escaneo completo: filas y columnas
+	            for (int f = 0; f < 4; f++) {
+	                GPIO_SetBits(filas[f].puerto, filas[f].pin);
+	                for (int c = 0; c < 4; c++) {
+	                    if (GPIO_ReadInputDataBit(columnas[c].puerto, columnas[c].pin) == 1) {
+	                        tecla_presionada = 1;
+	                        break;
+	                    }
+	                }
+	                GPIO_ResetBits(filas[f].puerto, filas[f].pin);
+	            }
+
+	            if (!tecla_presionada) {
+	                estado = ESPERANDO_TECLA;
+	            }
+
+	            return 0;
+	        }
+	    }
+
+	    return 0;
+	}
